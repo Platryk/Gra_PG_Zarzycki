@@ -55,8 +55,8 @@ unsigned int WYSOKOSC_OKNA = 800;
 unsigned int SZEROKOSC_EKRANU = 0;
 unsigned int WYSOKOSC_EKRANU = 0;
 
-unsigned int SZEROKOSC_MAPY = 0;
-unsigned int WYSOKOSC_MAPY = 0;
+unsigned int SZEROKOSC_MAPY_W_PXL = 0;
+unsigned int WYSOKOSC_MAPY_W_PXL = 0;
 
 class MapaKafelkowa : public sf::Drawable, public sf::Transformable
 {
@@ -131,8 +131,8 @@ int main()
 	sf::RenderTexture ekran;
 	ekran.create(SZEROKOSC_EKRANU, WYSOKOSC_EKRANU);
 
-	SZEROKOSC_MAPY = rozmiar_mapy_w_kafelkach.x * rozmiar_kafelka.x;
-	WYSOKOSC_MAPY = rozmiar_mapy_w_kafelkach.y * rozmiar_kafelka.y;
+	SZEROKOSC_MAPY_W_PXL = rozmiar_mapy_w_kafelkach.x * rozmiar_kafelka.x;
+	WYSOKOSC_MAPY_W_PXL = rozmiar_mapy_w_kafelkach.y * rozmiar_kafelka.y;
 
 	typedef vector < RObiekt* > VObiektyT;
 	VObiektyT vObiekty;
@@ -448,9 +448,9 @@ void RObiekt::aktualizujPolozenie()
 	pozycja_na_mapie.y += kierunek.y * predkosc;
 
 	pozycja_na_mapie.x = pozycja_na_mapie.x < 0 ? 0 : pozycja_na_mapie.x;
-	pozycja_na_mapie.x = pozycja_na_mapie.x > SZEROKOSC_MAPY ? SZEROKOSC_MAPY : pozycja_na_mapie.x;
+	pozycja_na_mapie.x = pozycja_na_mapie.x > SZEROKOSC_MAPY_W_PXL ? SZEROKOSC_MAPY_W_PXL : pozycja_na_mapie.x;
 	pozycja_na_mapie.y = pozycja_na_mapie.y < 0 ? 0 : pozycja_na_mapie.y;
-	pozycja_na_mapie.y = pozycja_na_mapie.y > WYSOKOSC_MAPY ? WYSOKOSC_MAPY : pozycja_na_mapie.y;
+	pozycja_na_mapie.y = pozycja_na_mapie.y > WYSOKOSC_MAPY_W_PXL ? WYSOKOSC_MAPY_W_PXL : pozycja_na_mapie.y;
 
 	unsigned int x = pozycja_na_mapie.x;
 	unsigned int y = pozycja_na_mapie.y;
@@ -476,11 +476,11 @@ void Gracz::aktualizujPolozenie()
 	unsigned int y = WYSOKOSC_EKRANU / 2 - (tekstura.getSize().y * sprite.getScale().y / 2);
 
 	if (pozycja_na_mapie.x < SZEROKOSC_EKRANU / 2 - (tekstura.getSize().x * sprite.getScale().x / 2)
-		|| pozycja_na_mapie.x > SZEROKOSC_MAPY - (SZEROKOSC_EKRANU / 2 - (tekstura.getSize().x * sprite.getScale().x / 2)))
+		|| pozycja_na_mapie.x > SZEROKOSC_MAPY_W_PXL - (SZEROKOSC_EKRANU / 2 - (tekstura.getSize().x * sprite.getScale().x / 2)))
 		x = pozycja_na_mapie.x;
 
 	if (pozycja_na_mapie.y < WYSOKOSC_EKRANU / 2 - (tekstura.getSize().y * sprite.getScale().y / 2)
-		|| pozycja_na_mapie.y > WYSOKOSC_MAPY - (WYSOKOSC_EKRANU / 2 - (tekstura.getSize().y * sprite.getScale().y / 2)))
+		|| pozycja_na_mapie.y > WYSOKOSC_MAPY_W_PXL - (WYSOKOSC_EKRANU / 2 - (tekstura.getSize().y * sprite.getScale().y / 2)))
 		y = pozycja_na_mapie.y;
 
 	sprite.setPosition(x, y);
