@@ -21,13 +21,22 @@ Zrealizowane:
 7. Stworzenie systemu zapisu map (plik zawieraj¹cy dane mapy).
 8. Stworzenie systemu wczytywania map.
 9. Zmiana punktu odniesienia (z mapy na postaæ) w wyœwietlaniu mapy.
+10. Zapoznanie z systemem dziedziczenia.
+11. Wykorzystanie systemu dziedziczenia w programie.
 
 Co zrealizowalem w biezacym tygodniu?
-1. Zapoznanie z systemem dziedziczenia.
-2. Wykorzystanie systemu dziedziczenia w programie.
+1. Podzia³ kodu na pliki zgodnie z podejœciem obiektowym.
+2. Postêp w pracy nad systemem wyswietlania.
+3. Przebudowa systemu wyswietlania na oparty na sf::View.
+4. Dodanie przykladowego obiektu (drzewo).
+5. Oprogramowanie zmiany rozmiaru okna (window resized).
+6. Wyœwietlanie gry na osobnym RenderWindow, a nastêpnie na g³ównym oknie.
 
 Co planuje na kolejny tydzien?
-1. Dalsze prace nad systemem sterowania, generowania map oraz wyœwietlania obiektów.
+1. Dalsze prace nad systemem sterowania, generowania map.
+2. Dodanie jakiegoœ zwierzêcia/innych obiektów.
+3. Dodanie animacji ruchu postaci.
+4. Dodanie systemu kolizji.
 
 
 ------------------------------------------------------------*/
@@ -44,79 +53,41 @@ Program glowny
 #include <vector>
 #include <time.h>
 #include <string>
-#include <fstream>
+
+#include "mapa_kafelkowa.h"
+#include "robiekty.h"
 
 using namespace std;
 
 
-unsigned int SZEROKOSC_OKNA = 1024;
-unsigned int WYSOKOSC_OKNA = 800;
+sf::Vector2i v2ftoi(sf::Vector2f v2f) {
+	return sf::Vector2i((int)v2f.x, (int)v2f.y);
+}
 
-unsigned int SZEROKOSC_EKRANU = 0;
-unsigned int WYSOKOSC_EKRANU = 0;
+sf::Vector2f pozycja_widoku_glownego(sf::Vector2i, sf::Vector2i, sf::Vector2u, sf::Vector2u);
 
-unsigned int SZEROKOSC_MAPY_W_PXL = 0;
-unsigned int WYSOKOSC_MAPY_W_PXL = 0;
-
-class MapaKafelkowa : public sf::Drawable, public sf::Transformable
-{
-private:
-
-	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
-
-	sf::VertexArray m_vertices;
-	sf::Texture m_tileset;
-	unsigned int** level;
-	unsigned int szerokosc_mapy_w_kafelkach, wysokosc_mapy_w_kafelkach;
-	sf::Vector2u rozmiar_kafelka;
-
-public:
-	bool load(const std::string& tileset, sf::Vector2u tile_size, sf::Vector2u rozmiar_mapy);
-	void aktualizujPozycje(sf::Vector2i pozycja_gracza, sf::Sprite sprite_gracza);
-	void generuj();
-	void zapisz();
-	bool wczytaj(string nazwa);
-
-	string sciezka_wczytaj = "";
-};
-
-class RObiekt 
-{
-protected:
-	string nazwa;
-	sf::Vector2i pozycja_na_mapie;
-	double predkosc = 4;
-	sf::Vector2f kierunek;
-	sf::Texture tekstura;
-	sf::Sprite sprite;
-
-public:
-	RObiekt(string s_nazwa, sf::Vector2i u_pos, string tekstura_sciezka, sf::Vector2f skala);
-
-	string podajNazwe() { return nazwa; }
-	sf::Vector2i podajPozycjeNaMapie() { return pozycja_na_mapie; }
-	sf::Vector2f podajPozycjeSprita() { return sprite.getPosition(); }
-	sf::Sprite podajSprite() { return sprite; }
-	virtual void aktualizujPolozenie();
-	void zmienKierunekRuchuWPionie(float y);
-	void zmienKierunekRuchuWPoziomie(float x);
-};
-
-class Gracz : public RObiekt
-{
-public:
-	Gracz(string s_nazwa, sf::Vector2i u_pozycja_na_mapie, string tekstura_sciezka, sf::Vector2f skala)
-		: RObiekt::RObiekt(s_nazwa, u_pozycja_na_mapie, tekstura_sciezka, skala)
-	{}
-
-	virtual void aktualizujPolozenie();
-};
 
 int main()
 {
-	sf::RenderWindow oknoAplikacji(sf::VideoMode(SZEROKOSC_OKNA, WYSOKOSC_OKNA, 32), "Gra PG - Green World");
+	//deklaracja zmiennych
+	sf::Clock GLOWNY_ZEGAR;
+	sf::Clock ZEGAR_OD_ROZPOCZECIA_GRY;
+	sf::Clock ZEGAR_DO_OBLICZANIA_POZYCJI;
+	float czas_do_pozycjonowania_w_sekundach;
 
-	sf::Clock glowny_zegar;
+	unsigned int SZEROKOSC_OKNA = 1000;
+	unsigned int WYSOKOSC_OKNA = 800;
+
+	unsigned int SZEROKOSC_EKRANU_GRY = SZEROKOSC_OKNA - 100;
+	unsigned int WYSOKOSC_EKRANU_GRY = WYSOKOSC_OKNA - 100;
+
+	unsigned int SZEROKOSC_MAPY_W_PXL = 0;
+	unsigned int WYSOKOSC_MAPY_W_PXL = 0;
+
+
+	sf::RenderWindow okno_aplikacji(sf::VideoMode(SZEROKOSC_OKNA, WYSOKOSC_OKNA, 32), "Gra PG - Green World"); 
+	okno_aplikacji.setVerticalSyncEnabled(true);
+	okno_aplikacji.setPosition(sf::Vector2i(sf::VideoMode::getDesktopMode().width / 2 - SZEROKOSC_OKNA / 2, sf::VideoMode::getDesktopMode().height / 2 - WYSOKOSC_OKNA / 2));
 
 	MapaKafelkowa mapa;
 	mapa.sciezka_wczytaj = "zapis1";
@@ -125,37 +96,78 @@ int main()
 	if (!mapa.load("grafiki/kafelki.jpg", rozmiar_kafelka, rozmiar_mapy_w_kafelkach))
 		return -1;
 
-	SZEROKOSC_EKRANU = SZEROKOSC_OKNA + 2 * rozmiar_kafelka.x;
-	WYSOKOSC_EKRANU = WYSOKOSC_OKNA + 2 * rozmiar_kafelka.y;
-
-	sf::RenderTexture ekran;
-	ekran.create(SZEROKOSC_EKRANU, WYSOKOSC_EKRANU);
-
 	SZEROKOSC_MAPY_W_PXL = rozmiar_mapy_w_kafelkach.x * rozmiar_kafelka.x;
 	WYSOKOSC_MAPY_W_PXL = rozmiar_mapy_w_kafelkach.y * rozmiar_kafelka.y;
 
-	typedef vector < RObiekt* > VObiektyT;
+	sf::RenderTexture ekran_gry;
+	ekran_gry.create(SZEROKOSC_MAPY_W_PXL, WYSOKOSC_MAPY_W_PXL);
+
+	sf::View widok_ekranu_gry(sf::FloatRect(0.f, 0.f, SZEROKOSC_EKRANU_GRY, WYSOKOSC_EKRANU_GRY));
+
+	widok_ekranu_gry.setViewport(sf::FloatRect(0.f, 0.f, (float)SZEROKOSC_EKRANU_GRY / SZEROKOSC_MAPY_W_PXL, (float)WYSOKOSC_EKRANU_GRY / WYSOKOSC_MAPY_W_PXL));
+
+	//cout << widok_ekranu_gry.getViewport().left << "  " << widok_ekranu_gry.getViewport().top << "  " << "  " << widok_ekranu_gry.getViewport().width << "  " << widok_ekranu_gry.getViewport().height << endl;
+
+
+	typedef vector < PodstawowyObiekt* > VObiektyT;
 	VObiektyT vObiekty;
 
-	vObiekty.push_back(new Gracz("gracz", sf::Vector2i(20, 20), "grafiki/char.png", sf::Vector2f(0.3, 0.3)));
+	vObiekty.push_back(new Gracz("gracz", sf::Vector2i(400, 400), 200, "grafiki/postac1.png", sf::Vector2f(0.3, 0.3)));
+	vObiekty.push_back(new Drzewo("drzewo1", sf::Vector2i(500, 500), "grafiki/drzewo1.png", sf::Vector2f(0.4, 0.4)));
 
-	unsigned int nr_gracza_w_vObiekty = 0;;
-	
+	cout << vObiekty[1]->podajSprite().getPosition().x << ' ' << vObiekty[1]->podajPozycjeNaMapie().y << endl;
+
+
+	unsigned int nr_gracza_w_vObiekty;
+	sf::Event zdarzenie;
+
+
+	//restart zegarow
+	ZEGAR_DO_OBLICZANIA_POZYCJI.restart();
+	GLOWNY_ZEGAR.restart();
+	ZEGAR_OD_ROZPOCZECIA_GRY.restart();
+
+
 	//g³ówna pêtla gry
-	while (oknoAplikacji.isOpen()) 
+	while (okno_aplikacji.isOpen()) 
 	{
-		//reset glownego zegara
-		glowny_zegar.restart();
+		//restart glownego zegara
+		GLOWNY_ZEGAR.restart();
+
+
+		//wyszukanie obiektu o nazwie "gracz" i zapisanie jego pozycji w wektorze do zmiennej
+		for (int i = 0; i < vObiekty.size(); i++) {
+			if (vObiekty[i]->podajNazwe() == "gracz") {
+				nr_gracza_w_vObiekty = i;
+				//cout << "                  |" << gracz_nr_w_vObiekty << endl;
+				break;
+			}
+		}
+
 
 		//obs³uga zdarzeñ
-		sf::Event zdarzenie;
-		while (oknoAplikacji.pollEvent(zdarzenie))
+		while (okno_aplikacji.pollEvent(zdarzenie))
 		{
 			switch (zdarzenie.type) {
 			case sf::Event::Closed:
-				oknoAplikacji.close();
+				okno_aplikacji.close();
 				break;
 
+			case sf::Event::Resized:
+				{
+					sf::Vector2u rozmiarOkna = okno_aplikacji.getSize();
+
+					SZEROKOSC_EKRANU_GRY -= SZEROKOSC_OKNA - rozmiarOkna.x;
+					WYSOKOSC_EKRANU_GRY -= WYSOKOSC_OKNA - rozmiarOkna.y;
+
+					SZEROKOSC_OKNA = rozmiarOkna.x;
+					WYSOKOSC_OKNA = rozmiarOkna.y;
+
+					okno_aplikacji.setView(sf::View(sf::FloatRect(0, 0, SZEROKOSC_OKNA, WYSOKOSC_OKNA)));
+
+					widok_ekranu_gry.reset(sf::FloatRect(0.f, 0.f, SZEROKOSC_EKRANU_GRY, WYSOKOSC_EKRANU_GRY));
+					widok_ekranu_gry.setViewport(sf::FloatRect(0.f, 0.f, (float)SZEROKOSC_EKRANU_GRY / SZEROKOSC_MAPY_W_PXL, (float)WYSOKOSC_EKRANU_GRY / WYSOKOSC_MAPY_W_PXL));
+				}
 			case sf::Event::KeyReleased:
 			case sf::Event::KeyPressed:
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
@@ -181,307 +193,89 @@ int main()
 					vObiekty[nr_gracza_w_vObiekty]->zmienKierunekRuchuWPoziomie(0);
 
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
-					oknoAplikacji.close();
+					okno_aplikacji.close();
 
 				break;
 			}
 		}
 
 
-		//wyszukanie obiektu o nazwie "gracz" i zapisanie jego pozycji w wektorze do zmiennej
-		for (int i = 0; i < vObiekty.size(); i++) {
-			if (vObiekty[i]->podajNazwe() == "gracz") {
-				nr_gracza_w_vObiekty = i;
-				//cout << "                  |" << gracz_nr_w_vObiekty << endl;
-				break;
-			}
-		}
+		ekran_gry.clear(sf::Color(50, 50, 50));
 
-		ekran.clear(sf::Color(0,100,50));
+		ekran_gry.draw(mapa);
+
 
 		//aktualizacja pozycji obiektow z vektora vObiekty
+		czas_do_pozycjonowania_w_sekundach = ZEGAR_DO_OBLICZANIA_POZYCJI.getElapsedTime().asSeconds();
+
 		for (int i = 0; i < vObiekty.size(); i++) {
-			vObiekty[i]->aktualizujPolozenie();
+			vObiekty[i]->aktualizujPolozenie(SZEROKOSC_MAPY_W_PXL, WYSOKOSC_MAPY_W_PXL, czas_do_pozycjonowania_w_sekundach);
 		}
+
+		ZEGAR_DO_OBLICZANIA_POZYCJI.restart();
 		
-		//okreslenie fragmentu mapy do wyswietlenia w oparciu o pozycje gracza
-		sf::Sprite sprite_gracza = vObiekty[nr_gracza_w_vObiekty]->podajSprite();
-		sf::Vector2i pozycja_gracza_na_mapie = vObiekty[nr_gracza_w_vObiekty]->podajPozycjeNaMapie();
-		mapa.aktualizujPozycje(pozycja_gracza_na_mapie, sprite_gracza);
-	cout << pozycja_gracza_na_mapie.x << ' ' << pozycja_gracza_na_mapie.y << endl;
 
-		ekran.draw(mapa);
-
-		//wyswietlanie obiektow z vektora vObiekty
+		//rysowanie na ekranie obiektow z vektora vObiekty
 		for (int i = 0; i < vObiekty.size(); i++) {
 
 			//cout << vObiekty[i]->podajPozycjeSprita().x << ' ' << vObiekty[i]->podajPozycjeSprita().y << endl;
 
-			if (vObiekty[i]->podajPozycjeSprita().x < -100 || vObiekty[i]->podajPozycjeSprita().x > SZEROKOSC_EKRANU + 100);
-			else if (vObiekty[i]->podajPozycjeSprita().y < -100 || vObiekty[i]->podajPozycjeSprita().y > WYSOKOSC_EKRANU + 100);
+			if (vObiekty[i]->podajPozycjeSprita().x < -100 || vObiekty[i]->podajPozycjeSprita().x > 2000);
+			else if (vObiekty[i]->podajPozycjeSprita().y < -100 || vObiekty[i]->podajPozycjeSprita().y > 2000);
 			else {
-				ekran.draw(vObiekty[i]->podajSprite());
+				ekran_gry.draw(vObiekty[i]->podajSprite());
 			}
 		}
 
-		ekran.display();
 
-		const sf::Texture& tekstura_ekranu = ekran.getTexture();
-		sf::Sprite sprite_ekranu(tekstura_ekranu);
+		//okreslenie fragmentu mapy do wyswietlenia w oparciu o pozycje gracza
+		sf::Vector2i punkt_centralny_spritea_gracza = vObiekty[nr_gracza_w_vObiekty]->podajPunktCentralnySpritea();
+		sf::Vector2i pozycja_gracza_na_mapie = v2ftoi(vObiekty[nr_gracza_w_vObiekty]->podajPozycjeNaMapie());
 
-		unsigned int srodek_okna_x = SZEROKOSC_EKRANU / 2 - (sprite_gracza.getTexture()->getSize().x * sprite_gracza.getScale().x / 2);
-		unsigned int srodek_okna_y = WYSOKOSC_EKRANU / 2 - (sprite_gracza.getTexture()->getSize().y * sprite_gracza.getScale().y / 2);
+		//cout << pozycja_gracza_na_mapie.x << ' ' << pozycja_gracza_na_mapie.y << endl;
+		//cout << "        " << ZEGAR_OD_ROZPOCZECIA_GRY.getElapsedTime().asSeconds() << endl;
 
-		//ustawienie pozycji ekranu na oknie aplikacji - autorski sposób na p³ynne wyœwietlanie œciêtych kafelków na krañcach mapy
-		sf::Vector2f pozycja_ekranu;
-		if (pozycja_gracza_na_mapie.x < srodek_okna_x)
-			pozycja_ekranu.x = rozmiar_kafelka.x * -1.0 + srodek_okna_x - pozycja_gracza_na_mapie.x > 0 ? 0 : rozmiar_kafelka.x * -1.0 + srodek_okna_x - pozycja_gracza_na_mapie.x;
-		else if (pozycja_gracza_na_mapie.x > rozmiar_mapy_w_kafelkach.x * rozmiar_kafelka.x - srodek_okna_x)
-			pozycja_ekranu.x = rozmiar_kafelka.x * -1.0 + (rozmiar_mapy_w_kafelkach.x * rozmiar_kafelka.x - srodek_okna_x) - pozycja_gracza_na_mapie.x < -2.0 * rozmiar_kafelka.x ? -2.0 * rozmiar_kafelka.x : rozmiar_kafelka.x * -1.0 + (rozmiar_mapy_w_kafelkach.x * rozmiar_kafelka.x - srodek_okna_x) - pozycja_gracza_na_mapie.x;
-		else
-			pozycja_ekranu.x = rozmiar_kafelka.x * -1.0;
+		widok_ekranu_gry.setCenter(pozycja_widoku_glownego(
+			pozycja_gracza_na_mapie, punkt_centralny_spritea_gracza, sf::Vector2u(SZEROKOSC_MAPY_W_PXL, WYSOKOSC_MAPY_W_PXL), sf::Vector2u(SZEROKOSC_EKRANU_GRY, WYSOKOSC_EKRANU_GRY)));
 
-		if (pozycja_gracza_na_mapie.y < srodek_okna_y)
-			pozycja_ekranu.y = rozmiar_kafelka.y * -1.0 + srodek_okna_y - pozycja_gracza_na_mapie.y > 0 ? 0 : rozmiar_kafelka.y * -1.0 + srodek_okna_y - pozycja_gracza_na_mapie.y;
-		else if (pozycja_gracza_na_mapie.y > rozmiar_mapy_w_kafelkach.y * rozmiar_kafelka.y - srodek_okna_y)
-			pozycja_ekranu.y = rozmiar_kafelka.y * -1.0 + (rozmiar_mapy_w_kafelkach.y * rozmiar_kafelka.y - srodek_okna_y) - pozycja_gracza_na_mapie.y < -2.0 * rozmiar_kafelka.y ? -2.0 * rozmiar_kafelka.y : rozmiar_kafelka.y * -1.0 + (rozmiar_mapy_w_kafelkach.y * rozmiar_kafelka.y - srodek_okna_y) - pozycja_gracza_na_mapie.y;
-		else
-			pozycja_ekranu.y = rozmiar_kafelka.y * -1.0;
+		//cout << widok_ekranu_gry.getCenter().x << "  " << widok_ekranu_gry.getCenter().y << endl;
 
-		sprite_ekranu.setPosition(pozycja_ekranu);
-		cout << sprite_ekranu.getPosition().x << ' ' << sprite_ekranu.getPosition().y << endl;
-		oknoAplikacji.draw(sprite_ekranu);
 
-		while (1)
-			if (glowny_zegar.getElapsedTime().asMilliseconds() > 1000 / 60.0)
-				break;
+		ekran_gry.setView(widok_ekranu_gry);
 
-		oknoAplikacji.display();
+		ekran_gry.display();
+
+		const sf::Texture& tekstura_ekranu = ekran_gry.getTexture();
+		sf::Sprite sprite_ekranu_gry(tekstura_ekranu);
+		sprite_ekranu_gry.setPosition(sf::Vector2f(50, 50));
+
+
+		okno_aplikacji.clear(sf::Color(50, 50, 50));
+
+		okno_aplikacji.draw(sprite_ekranu_gry);
+
+		okno_aplikacji.display();
 	}
 	return 0;
 }
 
 //////////////////////////////////////////////////////////
 
-
-void MapaKafelkowa::draw(sf::RenderTarget & target, sf::RenderStates states) const
+sf::Vector2f pozycja_widoku_glownego(sf::Vector2i poz_gracza, sf::Vector2i srodek_spritea, sf::Vector2u rozmiar_mapy, sf::Vector2u rozmiar_ekranu)
 {
-	// apply the transform
-	states.transform *= getTransform();
+	float x = poz_gracza.x + (srodek_spritea.x / 2);
+	float y = poz_gracza.y + srodek_spritea.y;
 
-	// apply the tileset texture
-	states.texture = &m_tileset;
+	if (x < rozmiar_ekranu.x / 2)
+		x = rozmiar_ekranu.x / 2;
+	else if (x > rozmiar_mapy.x - rozmiar_ekranu.x / 2)
+		x = rozmiar_mapy.x - rozmiar_ekranu.x / 2;
 
-	// draw the vertex array
-	target.draw(m_vertices, states);
-}
+	if (y < rozmiar_ekranu.y / 2)
+		y = rozmiar_ekranu.y / 2;
+	else if (y > rozmiar_mapy.y - rozmiar_ekranu.y / 2)
+		y = rozmiar_mapy.y - rozmiar_ekranu.y / 2;
 
-bool MapaKafelkowa::load(const std::string & tileset, sf::Vector2u tile_size, sf::Vector2u rozmiar_mapy)
-{
-	szerokosc_mapy_w_kafelkach = rozmiar_mapy.x;
-	wysokosc_mapy_w_kafelkach = rozmiar_mapy.y;
-	rozmiar_kafelka = tile_size;
-
-	level = new unsigned int*[wysokosc_mapy_w_kafelkach];
-	for (int i = 0; i < wysokosc_mapy_w_kafelkach; i++)
-		level[i] = new unsigned int[szerokosc_mapy_w_kafelkach];
-
-	if (!this->wczytaj(sciezka_wczytaj)) {
-		this->generuj();
-		this->zapisz();
-	}
-
-	// load the tileset texture
-	if (!m_tileset.loadFromFile(tileset))
-		return false;
-
-	// resize the vertex array to fit the level size
-	m_vertices.setPrimitiveType(sf::Quads);
-	m_vertices.resize(szerokosc_mapy_w_kafelkach * wysokosc_mapy_w_kafelkach * 4);
-
-	// populate the vertex array, with one quad per tile
-	for (unsigned int i = 0; i < szerokosc_mapy_w_kafelkach; ++i)
-		for (unsigned int j = 0; j < wysokosc_mapy_w_kafelkach; ++j)
-		{
-			// get the current tile number
-			int tileNumber = level[j][i];
-
-			// find its position in the tileset texture
-			int tu = tileNumber % (m_tileset.getSize().x / rozmiar_kafelka.x);
-			int tv = tileNumber / (m_tileset.getSize().x / rozmiar_kafelka.x);
-
-			// get a pointer to the current tile's quad
-			sf::Vertex* quad = &m_vertices[(i + j * szerokosc_mapy_w_kafelkach) * 4];
-
-			//// define its 4 corners
-			//quad[0].position = sf::Vector2f(i * tileSize.x, j * tileSize.y);
-			//quad[1].position = sf::Vector2f((i + 1) * tileSize.x, j * tileSize.y);
-			//quad[2].position = sf::Vector2f((i + 1) * tileSize.x, (j + 1) * tileSize.y);
-			//quad[3].position = sf::Vector2f(i * tileSize.x, (j + 1) * tileSize.y);
-
-			// define its 4 texture coordinates
-			quad[0].texCoords = sf::Vector2f(tu * rozmiar_kafelka.x, tv * rozmiar_kafelka.y);
-			quad[1].texCoords = sf::Vector2f((tu + 1) * rozmiar_kafelka.x, tv * rozmiar_kafelka.y);
-			quad[2].texCoords = sf::Vector2f((tu + 1) * rozmiar_kafelka.x, (tv + 1) * rozmiar_kafelka.y);
-			quad[3].texCoords = sf::Vector2f(tu * rozmiar_kafelka.x, (tv + 1) * rozmiar_kafelka.y);
-		}
-
-	return true;
-}
-
-void MapaKafelkowa::aktualizujPozycje(sf::Vector2i pozycja_gracza_na_mapie, sf::Sprite sprite_gracza)
-{
-	for (unsigned int i = 0; i < szerokosc_mapy_w_kafelkach; ++i)
-		for (unsigned int j = 0; j < wysokosc_mapy_w_kafelkach; ++j) {
-			sf::Vertex* quad = &m_vertices[(i + j * szerokosc_mapy_w_kafelkach) * 4];
-
-			unsigned int srodek_okna_x = SZEROKOSC_EKRANU / 2 - (sprite_gracza.getTexture()->getSize().x * sprite_gracza.getScale().x / 2);
-			if (pozycja_gracza_na_mapie.x < srodek_okna_x)
-				pozycja_gracza_na_mapie.x = srodek_okna_x;
-			else if (pozycja_gracza_na_mapie.x > szerokosc_mapy_w_kafelkach * rozmiar_kafelka.x - srodek_okna_x)
-				pozycja_gracza_na_mapie.x = szerokosc_mapy_w_kafelkach * rozmiar_kafelka.x - srodek_okna_x;
-
-			unsigned int srodek_okna_y = WYSOKOSC_EKRANU / 2 - (sprite_gracza.getTexture()->getSize().y * sprite_gracza.getScale().y / 2);
-			if (pozycja_gracza_na_mapie.y < srodek_okna_y)
-				pozycja_gracza_na_mapie.y = srodek_okna_y;
-			else if (pozycja_gracza_na_mapie.y > wysokosc_mapy_w_kafelkach * rozmiar_kafelka.y - srodek_okna_y)
-				pozycja_gracza_na_mapie.y = wysokosc_mapy_w_kafelkach * rozmiar_kafelka.y - srodek_okna_y;
-
-			unsigned int pozycja_x = srodek_okna_x - pozycja_gracza_na_mapie.x;
-			unsigned int pozycja_y = srodek_okna_y - pozycja_gracza_na_mapie.y;
-
-			unsigned int x = i * rozmiar_kafelka.x + pozycja_x;
-			unsigned int y = j * rozmiar_kafelka.y + pozycja_y;
-			quad[0].position = sf::Vector2f(x, y);
-
-			x = (i + 1) * rozmiar_kafelka.x + pozycja_x;
-			quad[1].position = sf::Vector2f(x, y);
-
-			y = (j + 1) * rozmiar_kafelka.y + pozycja_y;
-			quad[2].position = sf::Vector2f(x, y);
-
-			x = i * rozmiar_kafelka.x + pozycja_x;
-			quad[3].position = sf::Vector2f(x, y);
-		}
-}
-
-void MapaKafelkowa::generuj()
-{
-	srand(time(NULL));
-
-	int pula[] = {4,15,18};
-
-	for (int y = 0; y < wysokosc_mapy_w_kafelkach; y++) {
-		for (int x = 0; x < szerokosc_mapy_w_kafelkach; x++)
-			level[y][x] = pula[rand() % (sizeof(pula)/sizeof(*pula))];
-	}
-}
-
-void MapaKafelkowa::zapisz()
-{
-	fstream plik;
-	string sciezka;
-
-	int i = 1;
-	do {
-		plik.close();
-		sciezka = "zapisy/zapis" + to_string(i) + ".txt";
-
-		plik.open(sciezka);
-
-		i++;
-	} while (plik && (i < 5));
-
-	plik.open(sciezka, fstream::out | fstream::in | fstream::trunc);
-	
-	for (int y = 0; y < wysokosc_mapy_w_kafelkach; y++) {
-		for (int x = 0; x < szerokosc_mapy_w_kafelkach; x++) {
-			plik << ' ' << level[y][x];
-			cout << ' ' << level[y][x];
-		}
-		cout << endl;
-		plik << endl;
-	}
-
-	plik.close();
-}
-
-bool MapaKafelkowa::wczytaj(string nazwa)
-{
-	if (nazwa == "")
-		return false;
-
-	fstream plik;
-	string sciezka;
-
-	sciezka = "zapisy/" + nazwa + ".txt";
-
-	plik.open(sciezka, fstream::in);
-	if (!plik.good())
-		return false;
-
-	for (int y = 0; y < wysokosc_mapy_w_kafelkach; y++) {
-		for (int x = 0; x < szerokosc_mapy_w_kafelkach; x++) {
-			plik >> level[y][x];
-			cout << ' ' << level[y][x];
-		}
-		cout << endl;
-	}
-
-	plik.close();
-	return true;
-}
-
-RObiekt::RObiekt(string s_nazwa, sf::Vector2i u_pozycja_na_mapie, string tekstura_sciezka, sf::Vector2f skala)
-{
-	nazwa = s_nazwa;
-	pozycja_na_mapie = u_pozycja_na_mapie;
-	tekstura.loadFromFile(tekstura_sciezka);
-
-	sprite.setTexture(tekstura);
-	sprite.setScale(skala);
-}
-
-void RObiekt::aktualizujPolozenie()
-{
-	pozycja_na_mapie.x += kierunek.x * predkosc;
-	pozycja_na_mapie.y += kierunek.y * predkosc;
-
-	pozycja_na_mapie.x = pozycja_na_mapie.x < 0 ? 0 : pozycja_na_mapie.x;
-	pozycja_na_mapie.x = pozycja_na_mapie.x > SZEROKOSC_MAPY_W_PXL ? SZEROKOSC_MAPY_W_PXL : pozycja_na_mapie.x;
-	pozycja_na_mapie.y = pozycja_na_mapie.y < 0 ? 0 : pozycja_na_mapie.y;
-	pozycja_na_mapie.y = pozycja_na_mapie.y > WYSOKOSC_MAPY_W_PXL ? WYSOKOSC_MAPY_W_PXL : pozycja_na_mapie.y;
-
-	unsigned int x = pozycja_na_mapie.x;
-	unsigned int y = pozycja_na_mapie.y;
-
-	sprite.setPosition(x, y);
-}
-
-void RObiekt::zmienKierunekRuchuWPionie(float y)
-{
-	kierunek.y = y;
-}
-
-void RObiekt::zmienKierunekRuchuWPoziomie(float x)
-{
-	kierunek.x = x;
-}
-
-void Gracz::aktualizujPolozenie()
-{
-	RObiekt::aktualizujPolozenie();
-
-	unsigned int x = SZEROKOSC_EKRANU / 2 - (tekstura.getSize().x * sprite.getScale().x / 2);
-	unsigned int y = WYSOKOSC_EKRANU / 2 - (tekstura.getSize().y * sprite.getScale().y / 2);
-
-	if (pozycja_na_mapie.x < SZEROKOSC_EKRANU / 2 - (tekstura.getSize().x * sprite.getScale().x / 2)
-		|| pozycja_na_mapie.x > SZEROKOSC_MAPY_W_PXL - (SZEROKOSC_EKRANU / 2 - (tekstura.getSize().x * sprite.getScale().x / 2)))
-		x = pozycja_na_mapie.x;
-
-	if (pozycja_na_mapie.y < WYSOKOSC_EKRANU / 2 - (tekstura.getSize().y * sprite.getScale().y / 2)
-		|| pozycja_na_mapie.y > WYSOKOSC_MAPY_W_PXL - (WYSOKOSC_EKRANU / 2 - (tekstura.getSize().y * sprite.getScale().y / 2)))
-		y = pozycja_na_mapie.y;
-
-	sprite.setPosition(x, y);
+	//cout << "Glowny widok:" << x - (srodek_spritea.x / 2) << "   " << y - srodek_spritea.y <<endl;
+	return sf::Vector2f(x, y);
 }
