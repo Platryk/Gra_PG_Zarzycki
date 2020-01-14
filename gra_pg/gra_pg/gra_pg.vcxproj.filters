@@ -24,7 +24,7 @@
     <ClCompile Include="gracz.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
-    <ClCompile Include="robiekt.cpp">
+    <ClCompile Include="obiekty.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
   </ItemGroup>
@@ -32,7 +32,7 @@
     <ClInclude Include="mapa_kafelkowa.h">
       <Filter>Pliki źródłowe</Filter>
     </ClInclude>
-    <ClInclude Include="robiekty.h">
+    <ClInclude Include="obiekty.h">
       <Filter>Pliki źródłowe</Filter>
     </ClInclude>
   </ItemGroup>

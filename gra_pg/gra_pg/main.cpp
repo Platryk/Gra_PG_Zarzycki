@@ -23,20 +23,22 @@ Zrealizowane:
 9. Zmiana punktu odniesienia (z mapy na postaæ) w wyœwietlaniu mapy.
 10. Zapoznanie z systemem dziedziczenia.
 11. Wykorzystanie systemu dziedziczenia w programie.
+12. Podzia³ kodu na pliki zgodnie z podejœciem obiektowym.
+13. Postêp w pracy nad systemem wyswietlania.
+14. Przebudowa systemu wyswietlania na oparty na sf::View.
+15. Dodanie przykladowego obiektu (drzewo).
+16. Oprogramowanie zmiany rozmiaru okna (window resized).
+17. Wyœwietlanie gry na osobnym RenderWindow, a nastêpnie na g³ównym oknie.
 
 Co zrealizowalem w biezacym tygodniu?
-1. Podzia³ kodu na pliki zgodnie z podejœciem obiektowym.
-2. Postêp w pracy nad systemem wyswietlania.
-3. Przebudowa systemu wyswietlania na oparty na sf::View.
-4. Dodanie przykladowego obiektu (drzewo).
-5. Oprogramowanie zmiany rozmiaru okna (window resized).
-6. Wyœwietlanie gry na osobnym RenderWindow, a nastêpnie na g³ównym oknie.
+1. Dodanie wskaznika FPS.
+2. Dodanie systemu animacji ruchu postaci.
+3. Wzbogacenie systemu poruszania o wp³yw wartoœci przyspieszenia (charakterystycznej dla danej instancji).
 
 Co planuje na kolejny tydzien?
 1. Dalsze prace nad systemem sterowania, generowania map.
 2. Dodanie jakiegoœ zwierzêcia/innych obiektów.
-3. Dodanie animacji ruchu postaci.
-4. Dodanie systemu kolizji.
+3. Dodanie systemu kolizji.
 
 
 ------------------------------------------------------------*/
@@ -53,9 +55,10 @@ Program glowny
 #include <vector>
 #include <time.h>
 #include <string>
+#include <cmath>
 
 #include "mapa_kafelkowa.h"
-#include "robiekty.h"
+#include "obiekty.h"
 
 using namespace std;
 
@@ -64,8 +67,10 @@ sf::Vector2i v2ftoi(sf::Vector2f v2f) {
 	return sf::Vector2i((int)v2f.x, (int)v2f.y);
 }
 
-sf::Vector2f pozycja_widoku_glownego(sf::Vector2i, sf::Vector2i, sf::Vector2u, sf::Vector2u);
+sf::Vector2f pozycjaWidokuGlownego(sf::Vector2f, sf::Vector2f, sf::Vector2u, sf::Vector2u);
 
+//void wykrywanieKolizji(vector < PodstawowyObiekt* >& vObiekty);
+void wykrywanieKolizji(vector < PodstawowyObiekt* >& vObiekty, sf::RenderTexture &ekran_gry, unsigned int szerokosc_mapy_w_pxl, unsigned int wysokosc_mapy_w_pxl);
 
 int main()
 {
@@ -73,6 +78,7 @@ int main()
 	sf::Clock GLOWNY_ZEGAR;
 	sf::Clock ZEGAR_OD_ROZPOCZECIA_GRY;
 	sf::Clock ZEGAR_DO_OBLICZANIA_POZYCJI;
+	sf::Clock ZEGAR_DO_ODSWIEZANIA_WSKAZNIKA_FPS;
 	float czas_do_pozycjonowania_w_sekundach;
 
 	unsigned int SZEROKOSC_OKNA = 1000;
@@ -84,10 +90,20 @@ int main()
 	unsigned int SZEROKOSC_MAPY_W_PXL = 0;
 	unsigned int WYSOKOSC_MAPY_W_PXL = 0;
 
+	//stworzenie czcionki i wskaznika FPS
+	sf::Font courier_prime;
+	courier_prime.loadFromFile("czcionki/CourierPrime-Regular.ttf");
+	sf::Text wskaznik_FPS;
+	wskaznik_FPS.setFont(courier_prime);
+	wskaznik_FPS.setCharacterSize(13);
+	wskaznik_FPS.setFillColor(sf::Color(220, 220, 220));
+	wskaznik_FPS.setPosition(sf::Vector2f(5, 5));
 
-	sf::RenderWindow okno_aplikacji(sf::VideoMode(SZEROKOSC_OKNA, WYSOKOSC_OKNA, 32), "Gra PG - Green World"); 
+
+	sf::RenderWindow okno_aplikacji(sf::VideoMode(SZEROKOSC_OKNA, WYSOKOSC_OKNA, 32), "Gra PG - Green World");
 	okno_aplikacji.setVerticalSyncEnabled(true);
 	okno_aplikacji.setPosition(sf::Vector2i(sf::VideoMode::getDesktopMode().width / 2 - SZEROKOSC_OKNA / 2, sf::VideoMode::getDesktopMode().height / 2 - WYSOKOSC_OKNA / 2));
+
 
 	MapaKafelkowa mapa;
 	mapa.sciezka_wczytaj = "zapis1";
@@ -99,6 +115,7 @@ int main()
 	SZEROKOSC_MAPY_W_PXL = rozmiar_mapy_w_kafelkach.x * rozmiar_kafelka.x;
 	WYSOKOSC_MAPY_W_PXL = rozmiar_mapy_w_kafelkach.y * rozmiar_kafelka.y;
 
+
 	sf::RenderTexture ekran_gry;
 	ekran_gry.create(SZEROKOSC_MAPY_W_PXL, WYSOKOSC_MAPY_W_PXL);
 
@@ -106,45 +123,27 @@ int main()
 
 	widok_ekranu_gry.setViewport(sf::FloatRect(0.f, 0.f, (float)SZEROKOSC_EKRANU_GRY / SZEROKOSC_MAPY_W_PXL, (float)WYSOKOSC_EKRANU_GRY / WYSOKOSC_MAPY_W_PXL));
 
-	//cout << widok_ekranu_gry.getViewport().left << "  " << widok_ekranu_gry.getViewport().top << "  " << "  " << widok_ekranu_gry.getViewport().width << "  " << widok_ekranu_gry.getViewport().height << endl;
-
 
 	typedef vector < PodstawowyObiekt* > VObiektyT;
 	VObiektyT vObiekty;
 
-	vObiekty.push_back(new Gracz("gracz", sf::Vector2i(400, 400), 200, "grafiki/postac1.png", sf::Vector2f(0.3, 0.3)));
-	vObiekty.push_back(new Drzewo("drzewo1", sf::Vector2i(500, 500), "grafiki/drzewo1.png", sf::Vector2f(0.4, 0.4)));
-
-	cout << vObiekty[1]->podajSprite().getPosition().x << ' ' << vObiekty[1]->podajPozycjeNaMapie().y << endl;
+	vObiekty.push_back(new Gracz("gracz", sf::Vector2f(100, 200), 250, 2, "grafiki/postac2/", sf::Vector2f(0.15, 0.15)));
+	vObiekty.push_back(new Drzewo("drzewo1", sf::Vector2f(300, 300), "grafiki/drzewo1.png", sf::Vector2f(0.4, 0.4)));
 
 
-	unsigned int nr_gracza_w_vObiekty;
+	unsigned int nr_gracza_w_vObiekty = 0;
 	sf::Event zdarzenie;
 
 
 	//restart zegarow
 	ZEGAR_DO_OBLICZANIA_POZYCJI.restart();
-	GLOWNY_ZEGAR.restart();
 	ZEGAR_OD_ROZPOCZECIA_GRY.restart();
+	ZEGAR_DO_ODSWIEZANIA_WSKAZNIKA_FPS.restart();
 
 
 	//g³ówna pêtla gry
 	while (okno_aplikacji.isOpen()) 
 	{
-		//restart glownego zegara
-		GLOWNY_ZEGAR.restart();
-
-
-		//wyszukanie obiektu o nazwie "gracz" i zapisanie jego pozycji w wektorze do zmiennej
-		for (int i = 0; i < vObiekty.size(); i++) {
-			if (vObiekty[i]->podajNazwe() == "gracz") {
-				nr_gracza_w_vObiekty = i;
-				//cout << "                  |" << gracz_nr_w_vObiekty << endl;
-				break;
-			}
-		}
-
-
 		//obs³uga zdarzeñ
 		while (okno_aplikacji.pollEvent(zdarzenie))
 		{
@@ -200,11 +199,6 @@ int main()
 		}
 
 
-		ekran_gry.clear(sf::Color(50, 50, 50));
-
-		ekran_gry.draw(mapa);
-
-
 		//aktualizacja pozycji obiektow z vektora vObiekty
 		czas_do_pozycjonowania_w_sekundach = ZEGAR_DO_OBLICZANIA_POZYCJI.getElapsedTime().asSeconds();
 
@@ -212,36 +206,78 @@ int main()
 			vObiekty[i]->aktualizujPolozenie(SZEROKOSC_MAPY_W_PXL, WYSOKOSC_MAPY_W_PXL, czas_do_pozycjonowania_w_sekundach);
 		}
 
-		ZEGAR_DO_OBLICZANIA_POZYCJI.restart();
-		
 
-		//rysowanie na ekranie obiektow z vektora vObiekty
+		//sprawdzanie i obsluga kolizji
+		wykrywanieKolizji(vObiekty, ekran_gry, SZEROKOSC_MAPY_W_PXL, WYSOKOSC_MAPY_W_PXL);
+
+
+		//sortowanie obiektow wedlug polozenia w pionie (rysowanie od gory)
 		for (int i = 0; i < vObiekty.size(); i++) {
+			if (vObiekty[i]->podajPredkosc() != 0) {
+				for (int ii = i + 1; ii < vObiekty.size(); ii++) {
+					cout << vObiekty[i] << endl << endl;
+					cout << vObiekty[ii] << endl;
+					if (vObiekty[i]->podajPozycjeNaMapie().y + vObiekty[i]->podajSprite().getGlobalBounds().height > vObiekty[ii]->podajPozycjeNaMapie().y + vObiekty[ii]->podajSprite().getGlobalBounds().height) {
+						//PodstawowyObiekt* tmp = vObiekty[i];
+						//vObiekty[i] = vObiekty[ii];
+						//vObiekty[ii] = tmp;
 
-			//cout << vObiekty[i]->podajPozycjeSprita().x << ' ' << vObiekty[i]->podajPozycjeSprita().y << endl;
-
-			if (vObiekty[i]->podajPozycjeSprita().x < -100 || vObiekty[i]->podajPozycjeSprita().x > 2000);
-			else if (vObiekty[i]->podajPozycjeSprita().y < -100 || vObiekty[i]->podajPozycjeSprita().y > 2000);
-			else {
-				ekran_gry.draw(vObiekty[i]->podajSprite());
+						cout << "swap" << endl;
+					}
+				}
 			}
 		}
 
 
+		//wyszukanie obiektu o nazwie "gracz" i zapisanie jego pozycji w wektorze do zmiennej
+		if (vObiekty[nr_gracza_w_vObiekty]->podajNazwe() != "gracz") {
+			for (int i = 0; i < vObiekty.size(); i++) {
+				if (vObiekty[i]->podajNazwe() == "gracz") {
+					nr_gracza_w_vObiekty = i;
+					break;
+				}
+			}
+		}
+		
+
+		//prowadzenie wartosci wskaznika FPS
+		if (ZEGAR_DO_ODSWIEZANIA_WSKAZNIKA_FPS.getElapsedTime().asSeconds() >= 0.2f) {
+			string fps = to_string((int)(1 / ZEGAR_DO_OBLICZANIA_POZYCJI.getElapsedTime().asSeconds()));
+			if (fps.length() == 1)
+				fps = "  " + fps;
+			else if (fps.length() == 2)
+				fps = ' ' + fps;
+
+			wskaznik_FPS.setString( fps + " FPS");
+
+			ZEGAR_DO_ODSWIEZANIA_WSKAZNIKA_FPS.restart();
+		}
+
+
+		//restart
+		ZEGAR_DO_OBLICZANIA_POZYCJI.restart();
+		
+
+		//aktualizacja i wyczyszczenie tekstury ekranu gry
+		ekran_gry.setView(widok_ekranu_gry);
+		ekran_gry.clear(sf::Color(50, 50, 50));
+		ekran_gry.draw(mapa);
+
+
+		//rysowanie na ekranie obiektow z vektora vObiekty
+		for (int i = 0; i < vObiekty.size(); i++) {
+
+			ekran_gry.draw(vObiekty[i]->podajSprite());
+		}
+
+
 		//okreslenie fragmentu mapy do wyswietlenia w oparciu o pozycje gracza
-		sf::Vector2i punkt_centralny_spritea_gracza = vObiekty[nr_gracza_w_vObiekty]->podajPunktCentralnySpritea();
-		sf::Vector2i pozycja_gracza_na_mapie = v2ftoi(vObiekty[nr_gracza_w_vObiekty]->podajPozycjeNaMapie());
+		sf::Vector2f punkt_centralny_spritea_gracza = vObiekty[nr_gracza_w_vObiekty]->podajPunktCentralnySpritea();
+		sf::Vector2f pozycja_gracza_na_mapie = vObiekty[nr_gracza_w_vObiekty]->podajPozycjeNaMapie();
 
-		//cout << pozycja_gracza_na_mapie.x << ' ' << pozycja_gracza_na_mapie.y << endl;
-		//cout << "        " << ZEGAR_OD_ROZPOCZECIA_GRY.getElapsedTime().asSeconds() << endl;
-
-		widok_ekranu_gry.setCenter(pozycja_widoku_glownego(
+		widok_ekranu_gry.setCenter(pozycjaWidokuGlownego(
 			pozycja_gracza_na_mapie, punkt_centralny_spritea_gracza, sf::Vector2u(SZEROKOSC_MAPY_W_PXL, WYSOKOSC_MAPY_W_PXL), sf::Vector2u(SZEROKOSC_EKRANU_GRY, WYSOKOSC_EKRANU_GRY)));
 
-		//cout << widok_ekranu_gry.getCenter().x << "  " << widok_ekranu_gry.getCenter().y << endl;
-
-
-		ekran_gry.setView(widok_ekranu_gry);
 
 		ekran_gry.display();
 
@@ -252,6 +288,7 @@ int main()
 
 		okno_aplikacji.clear(sf::Color(50, 50, 50));
 
+		okno_aplikacji.draw(wskaznik_FPS);
 		okno_aplikacji.draw(sprite_ekranu_gry);
 
 		okno_aplikacji.display();
@@ -261,7 +298,7 @@ int main()
 
 //////////////////////////////////////////////////////////
 
-sf::Vector2f pozycja_widoku_glownego(sf::Vector2i poz_gracza, sf::Vector2i srodek_spritea, sf::Vector2u rozmiar_mapy, sf::Vector2u rozmiar_ekranu)
+sf::Vector2f pozycjaWidokuGlownego(sf::Vector2f poz_gracza, sf::Vector2f srodek_spritea, sf::Vector2u rozmiar_mapy, sf::Vector2u rozmiar_ekranu)
 {
 	float x = poz_gracza.x + (srodek_spritea.x / 2);
 	float y = poz_gracza.y + srodek_spritea.y;
@@ -276,6 +313,126 @@ sf::Vector2f pozycja_widoku_glownego(sf::Vector2i poz_gracza, sf::Vector2i srode
 	else if (y > rozmiar_mapy.y - rozmiar_ekranu.y / 2)
 		y = rozmiar_mapy.y - rozmiar_ekranu.y / 2;
 
-	//cout << "Glowny widok:" << x - (srodek_spritea.x / 2) << "   " << y - srodek_spritea.y <<endl;
 	return sf::Vector2f(x, y);
 }
+
+void wykrywanieKolizji(vector<PodstawowyObiekt*>& vObiekty, sf::RenderTexture &ekran_gry, unsigned int szerokosc_mapy_w_pxl, unsigned int wysokosc_mapy_w_pxl)
+{
+	sf::Vector2f poz_map1, poz_map2;
+	sf::Vector2f rzecz_kierunek1, rzecz_kierunek2;
+	unsigned int predkosc1, predkosc2;
+	sf::FloatRect prostokat1, prostokat2;
+	sf::Vector2f czesc_wspolna;
+
+	for (int nr_ob1 = 0; nr_ob1 < vObiekty.size(); nr_ob1++) {
+		poz_map1 = vObiekty[nr_ob1]->podajPozycjeNaMapie();
+		rzecz_kierunek1 = vObiekty[nr_ob1]->podajRzeczywistyKierunekRuchu();
+		prostokat1 = vObiekty[nr_ob1]->podajProstokatKolizyjny();
+
+		sf::RectangleShape rect1(sf::Vector2f(prostokat1.width, prostokat1.height));
+		rect1.setPosition(prostokat1.left, prostokat1.top);
+		ekran_gry.draw(rect1);
+
+		if (rzecz_kierunek1 != sf::Vector2f(0, 0)) {
+			sf::Vector2f srodek_spritea(vObiekty[nr_ob1]->podajPunktCentralnySpritea());
+
+			if (poz_map1.x < 0) {
+				poz_map1.x = 0;
+				vObiekty[nr_ob1]->zmienRzeczywistyKierunekRuchuWPoziomie(0);
+			}
+			else if (poz_map1.x > szerokosc_mapy_w_pxl - 2 * srodek_spritea.x) {
+				poz_map1.x = szerokosc_mapy_w_pxl - 2 * srodek_spritea.x;
+				vObiekty[nr_ob1]->zmienRzeczywistyKierunekRuchuWPoziomie(0);
+			}
+
+			if (poz_map1.y < 0) {
+				poz_map1.y = 0;
+				vObiekty[nr_ob1]->zmienRzeczywistyKierunekRuchuWPionie(0);
+			}
+			else if (poz_map1.y > wysokosc_mapy_w_pxl - 2 * srodek_spritea.y) {
+				poz_map1.y = wysokosc_mapy_w_pxl - 2 * srodek_spritea.y;
+				vObiekty[nr_ob1]->zmienRzeczywistyKierunekRuchuWPionie(0);
+			}
+
+			vObiekty[nr_ob1]->ustawPozycjeNaMapie(poz_map1);
+		}
+
+		for (int nr_ob2 = nr_ob1 + 1; nr_ob2 < vObiekty.size(); nr_ob2++) {
+
+			prostokat2 = vObiekty[nr_ob2]->podajProstokatKolizyjny();
+			if (prostokat1.intersects(prostokat2)) {
+
+				if (prostokat1.left + (prostokat1.width / 2) <= prostokat2.left + (prostokat2.width / 2))
+					czesc_wspolna.x = (prostokat1.left + prostokat1.width) - prostokat2.left;
+				else
+					czesc_wspolna.x = (prostokat2.left + prostokat2.width) - prostokat1.left;
+				if (prostokat1.top + (prostokat1.height / 2) <= prostokat2.top + (prostokat2.height / 2))
+					czesc_wspolna.y = (prostokat1.top + prostokat1.height) - prostokat2.top;
+				else
+					czesc_wspolna.y = (prostokat2.top + prostokat2.height) - prostokat1.top;
+
+				if (czesc_wspolna.x <= czesc_wspolna.y) {
+
+					if (rzecz_kierunek1.x != 0) {
+						vObiekty[nr_ob1]->zmienRzeczywistyKierunekRuchuWPoziomie(0);
+						if (prostokat1.left + (prostokat1.width / 2) <= prostokat2.left + (prostokat2.width / 2)) {
+							poz_map1 = sf::Vector2f(prostokat2.left - prostokat1.width + (poz_map1.x - prostokat1.left), poz_map1.y);
+							vObiekty[nr_ob1]->ustawPozycjeNaMapie(poz_map1);
+						}
+						else {
+							poz_map1 = sf::Vector2f(prostokat2.left + prostokat2.width + (poz_map1.x - prostokat1.left), poz_map1.y);
+							vObiekty[nr_ob1]->ustawPozycjeNaMapie(poz_map1);
+						}
+					}
+					if (rzecz_kierunek2.x != 0) {
+						vObiekty[nr_ob2]->zmienRzeczywistyKierunekRuchuWPoziomie(0);
+					}
+
+					//cout << "Zderzenie po x" << endl;
+				}
+				else {
+					
+					if (rzecz_kierunek1.y != 0) {
+						vObiekty[nr_ob1]->zmienRzeczywistyKierunekRuchuWPionie(0);
+						if (prostokat1.top + (prostokat1.height / 2) <= prostokat2.top + (prostokat2.height / 2)) {
+							poz_map1 = sf::Vector2f(poz_map1.x, prostokat2.top - prostokat1.height + (poz_map1.y - prostokat1.top));
+							vObiekty[nr_ob1]->ustawPozycjeNaMapie(poz_map1);
+						}
+						else {
+							poz_map1 = sf::Vector2f(poz_map1.x, prostokat2.top + prostokat2.height + (poz_map1.y - prostokat1.top));
+							vObiekty[nr_ob1]->ustawPozycjeNaMapie(poz_map1);
+						}
+					}
+					if (rzecz_kierunek2.y != 0) {
+						vObiekty[nr_ob2]->zmienRzeczywistyKierunekRuchuWPionie(0);
+					}
+
+					//cout << "Zderzenie po y" << endl;
+				}
+			}
+		}
+	}
+}
+
+/* archiwum cout-ow itp
+
+	cout << rand() << endl;
+
+	cout << "Glowny widok:" << x - (srodek_spritea.x / 2) << "   " << y - srodek_spritea.y <<endl;
+
+	cout << widok_ekranu_gry.getCenter().x << "  " << widok_ekranu_gry.getCenter().y << endl;
+
+	cout << pozycja_gracza_na_mapie.x << ' ' << pozycja_gracza_na_mapie.y << endl;
+
+	cout << "        " << ZEGAR_OD_ROZPOCZECIA_GRY.getElapsedTime().asSeconds() << endl;
+
+	cout << "                  |" << gracz_nr_w_vObiekty << endl;
+
+	cout << vObiekty[1]->podajSprite().getPosition().x << ' ' << vObiekty[1]->podajPozycjeNaMapie().y << endl;
+
+	cout << widok_ekranu_gry.getViewport().left << "  " << widok_ekranu_gry.getViewport().top << "  " << "  " << widok_ekranu_gry.getViewport().width << "  " << widok_ekranu_gry.getViewport().height << endl;
+
+	cout << czesc_wspolna.x << ' ' << czesc_wspolna.y << endl;
+
+
+*/

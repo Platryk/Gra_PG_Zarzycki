@@ -1,89 +1,56 @@
-﻿  gracz.cpp
-  main.cpp
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(103): warning C4244: 'argument': conversion from 'unsigned int' to 'T', possible loss of data
+﻿  main.cpp
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(122): warning C4244: 'argument': conversion from 'unsigned int' to 'T', possible loss of data
           with
           [
               T=float
           ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(113): warning C4305: 'argument': truncation from 'double' to 'T'
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(130): warning C4305: 'argument': truncation from 'double' to 'T'
           with
           [
               T=float
           ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(114): warning C4305: 'argument': truncation from 'double' to 'T'
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(131): warning C4305: 'argument': truncation from 'double' to 'T'
           with
           [
               T=float
           ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(137): warning C4018: '<': signed/unsigned mismatch
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(164): warning C4244: 'argument': conversion from 'unsigned int' to 'T', possible loss of data
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(165): warning C4244: 'argument': conversion from 'unsigned int' to 'T', possible loss of data
           with
           [
               T=float
           ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(166): warning C4244: 'argument': conversion from 'unsigned int' to 'T', possible loss of data
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(167): warning C4244: 'argument': conversion from 'unsigned int' to 'T', possible loss of data
           with
           [
               T=float
           ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(209): warning C4018: '<': signed/unsigned mismatch
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(205): warning C4018: '<': signed/unsigned mismatch
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(215): warning C4018: '<': signed/unsigned mismatch
 c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(217): warning C4018: '<': signed/unsigned mismatch
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(264): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(265): warning C4244: 'initializing': conversion from 'T' to 'float', possible loss of data
-          with
-          [
-              T=int
-          ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(268): warning C4244: '=': conversion from 'T' to 'float', possible loss of data
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(234): warning C4018: '<': signed/unsigned mismatch
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(268): warning C4018: '<': signed/unsigned mismatch
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(307): warning C4244: '=': conversion from 'T' to 'float', possible loss of data
           with
           [
               T=unsigned int
           ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(270): warning C4244: '=': conversion from 'T' to 'float', possible loss of data
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(309): warning C4244: '=': conversion from 'T' to 'float', possible loss of data
           with
           [
               T=unsigned int
           ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(273): warning C4244: '=': conversion from 'T' to 'float', possible loss of data
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(312): warning C4244: '=': conversion from 'T' to 'float', possible loss of data
           with
           [
               T=unsigned int
           ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(275): warning C4244: '=': conversion from 'T' to 'float', possible loss of data
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(314): warning C4244: '=': conversion from 'T' to 'float', possible loss of data
           with
           [
               T=unsigned int
           ]
-  robiekt.cpp
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\robiekt.cpp(12): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
-          with
-          [
-              T=int
-          ]
-          and
-          [
-              T=float
-          ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\robiekt.cpp(21): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
-          with
-          [
-              T=float
-          ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\robiekt.cpp(22): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
-          with
-          [
-              T=float
-          ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\robiekt.cpp(40): warning C4244: 'initializing': conversion from 'T' to 'unsigned int', possible loss of data
-          with
-          [
-              T=float
-          ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\robiekt.cpp(41): warning C4244: 'initializing': conversion from 'T' to 'unsigned int', possible loss of data
-          with
-          [
-              T=float
-          ]
-c:\users\plate\onedrive\vc++\gra_pg\gra_pg\robiekt.cpp(43): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
-  Generating Code...
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(327): warning C4018: '<': signed/unsigned mismatch
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(360): warning C4018: '<': signed/unsigned mismatch
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(323): warning C4101: 'predkosc1': unreferenced local variable
+c:\users\plate\onedrive\vc++\gra_pg\gra_pg\main.cpp(323): warning C4101: 'predkosc2': unreferenced local variable
   gra_pg.vcxproj -> C:\Users\plate\OneDrive\VC++\gra_pg\Debug\gra_pg.exe

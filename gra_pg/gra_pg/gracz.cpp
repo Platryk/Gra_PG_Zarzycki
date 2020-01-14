@@ -1,7 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
-#include "robiekty.h"
+#include "obiekty.h"
 
 using namespace std;
 
