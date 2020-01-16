@@ -1,11 +1,38 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <cstdio>
 
 #include "mapa_kafelkowa.h"
 
 using namespace std;
 
+
+MapaKafelkowa::MapaKafelkowa(string s_nazwa_pliku_mapy)
+{
+	nazwa_pliku_mapy = s_nazwa_pliku_mapy;
+	sciezka = "mapy/" + nazwa_pliku_mapy + ".txt";
+
+	this->wczytaj();
+
+	this->zaladuj();
+}
+
+MapaKafelkowa::MapaKafelkowa(string s_nazwa_pliku_mapy, sf::Vector2u u_rozmiar_mapy_w_kafelkach, vector<int> v_pula_generatora)
+{
+	nazwa_pliku_mapy = s_nazwa_pliku_mapy;
+	sciezka = "mapy/" + nazwa_pliku_mapy + ".txt";
+
+	rozmiar_mapy_w_kafelkach = u_rozmiar_mapy_w_kafelkach;
+
+	pula_generatora = v_pula_generatora;
+	if(pula_generatora.size() == 0)
+		pula_generatora = { 19, 20, 32, 33, 41 };
+
+	this->generuj();
+	this->zaladuj();
+}
 
 void MapaKafelkowa::draw(sf::RenderTarget & target, sf::RenderStates states) const
 {
@@ -13,48 +40,87 @@ void MapaKafelkowa::draw(sf::RenderTarget & target, sf::RenderStates states) con
 	states.transform *= getTransform();
 
 	// apply the tileset texture
-	states.texture = &m_tileset;
+	states.texture = &tekstura_kafelkow;
 
 	// draw the vertex array
 	target.draw(m_vertices, states);
 }
 
-bool MapaKafelkowa::load(const std::string & tileset, sf::Vector2u tile_size, sf::Vector2u rozmiar_mapy)
+bool MapaKafelkowa::wczytaj()
 {
-	szerokosc_mapy_w_kafelkach = rozmiar_mapy.x;
-	wysokosc_mapy_w_kafelkach = rozmiar_mapy.y;
-	rozmiar_kafelka = tile_size;
-
-	level = new unsigned int*[wysokosc_mapy_w_kafelkach];
-	for (int i = 0; i < wysokosc_mapy_w_kafelkach; i++)
-		level[i] = new unsigned int[szerokosc_mapy_w_kafelkach];
-
-	if (!this->wczytaj(sciezka_wczytaj)) {
-		this->generuj();
-		this->zapisz();
-	}
-
-	// load the tileset texture
-	if (!m_tileset.loadFromFile(tileset))
+	if (nazwa_pliku_mapy == "")
 		return false;
 
+	fstream plik;
+
+	plik.open(sciezka, fstream::in);
+
+	if (!plik.good()) {
+		cout << "Problem z mapa: " + sciezka << endl;
+		return false;
+	}
+
+	int liczba;
+	string slowo;
+	string linia;
+	for (int i = 0; i < 4; i++) {
+
+		do {
+			getline(plik, linia);
+		} while (linia.length() == 0);
+
+		switch (i) {
+		case 0:
+			plik >> slowo;
+			tekstura_kafelkow.loadFromFile("grafiki/" + slowo);
+			break;
+		case 1:
+			plik >> rozmiar_mapy_w_kafelkach.x;
+			plik >> rozmiar_mapy_w_kafelkach.y;
+			break;
+		case 2:
+			plik >> rozmiar_kafelka.x;
+			plik >> rozmiar_kafelka.y;
+			break;
+		case 3:
+			tablica_mapy = new unsigned int*[rozmiar_mapy_w_kafelkach.y];
+			for (int i = 0; i < rozmiar_mapy_w_kafelkach.y; i++)
+				tablica_mapy[i] = new unsigned int[rozmiar_mapy_w_kafelkach.x];
+
+			for (int k = 0; k < rozmiar_mapy_w_kafelkach.y; k++) {
+				for (int w = 0; w < rozmiar_mapy_w_kafelkach.x; w++) {
+					plik >> tablica_mapy[k][w];
+				}
+			}
+			break;
+		}
+	}
+
+	this->zaladuj();
+
+	plik.close();
+	return true;
+}
+
+void MapaKafelkowa::zaladuj()
+{
 	// resize the vertex array to fit the level size
 	m_vertices.setPrimitiveType(sf::Quads);
-	m_vertices.resize(szerokosc_mapy_w_kafelkach * wysokosc_mapy_w_kafelkach * 4);
+	m_vertices.resize(rozmiar_mapy_w_kafelkach.x * rozmiar_mapy_w_kafelkach.y * 4);
 
 	// populate the vertex array, with one quad per tile
-	for (unsigned int k = 0; k < szerokosc_mapy_w_kafelkach; ++k)
-		for (unsigned int w = 0; w < wysokosc_mapy_w_kafelkach; ++w)
+	for (unsigned int k = 0; k < rozmiar_mapy_w_kafelkach.x; ++k)
+		for (unsigned int w = 0; w < rozmiar_mapy_w_kafelkach.y; ++w)
 		{
 			// get the current tile number
-			int tileNumber = level[w][k];
+			int tileNumber = tablica_mapy[w][k];
 
 			// find its position in the tileset texture
-			int tu = tileNumber % (m_tileset.getSize().x / rozmiar_kafelka.x);
-			int tv = tileNumber / (m_tileset.getSize().x / rozmiar_kafelka.x);
+			int tu = tileNumber % (tekstura_kafelkow.getSize().x / rozmiar_kafelka.x);
+			int tv = tileNumber / (tekstura_kafelkow.getSize().x / rozmiar_kafelka.x);
 
 			// get a pointer to the current tile's quad
-			sf::Vertex* quad = &m_vertices[(k + w * szerokosc_mapy_w_kafelkach) * 4];
+			sf::Vertex* quad = &m_vertices[(k + w * rozmiar_mapy_w_kafelkach.y) * 4];
 
 			// define its 4 corners
 			quad[0].position = sf::Vector2f(k * rozmiar_kafelka.x, w * rozmiar_kafelka.y);
@@ -68,73 +134,53 @@ bool MapaKafelkowa::load(const std::string & tileset, sf::Vector2u tile_size, sf
 			quad[2].texCoords = sf::Vector2f((tu + 1) * rozmiar_kafelka.x, (tv + 1) * rozmiar_kafelka.y);
 			quad[3].texCoords = sf::Vector2f(tu * rozmiar_kafelka.x, (tv + 1) * rozmiar_kafelka.y);
 		}
-
-	return true;
 }
 
 void MapaKafelkowa::generuj()
 {
+	tekstura_kafelkow.loadFromFile("grafiki/kafelki.jpg");
+
+	rozmiar_kafelka = sf::Vector2u(48, 48);
+
 	srand(time(NULL));
 
-	int pula[] = { 4,15,18 };
+	tablica_mapy = new unsigned int*[rozmiar_mapy_w_kafelkach.y];
+	for (int i = 0; i < rozmiar_mapy_w_kafelkach.y; i++)
+		tablica_mapy[i] = new unsigned int[rozmiar_mapy_w_kafelkach.x];
 
-	for (int k = 0; k < wysokosc_mapy_w_kafelkach; k++) {
-		for (int w = 0; w < szerokosc_mapy_w_kafelkach; w++)
-			level[k][w] = pula[rand() % (sizeof(pula) / sizeof(*pula))];
+	for (int k = 0; k < rozmiar_mapy_w_kafelkach.y; k++) {
+		for (int w = 0; w < rozmiar_mapy_w_kafelkach.x; w++)
+			tablica_mapy[k][w] = pula_generatora[rand() % pula_generatora.size()];
 	}
 }
 
 void MapaKafelkowa::zapisz()
 {
 	fstream plik;
-	string sciezka;
 
-	int i = 1;
-	do {
-		plik.close();
-		sciezka = "zapisy/zapis" + to_string(i) + ".txt";
+	plik.open(sciezka, fstream::out | fstream::trunc);
 
-		plik.open(sciezka);
+	plik << "#grafika kafelek\n";
+	plik << "kafelki.jpg\n\n";
+	plik << "#rozmiar mapy w kafelkach[x, y]\n";
+	plik << rozmiar_mapy_w_kafelkach.x << ' ' << rozmiar_mapy_w_kafelkach.y << "\n\n";
+	plik << "#rozmiar kafelka[x, y]\n";
+	plik << rozmiar_kafelka.x << ' ' << rozmiar_kafelka.y << "\n\n";
+	plik << "#mapa\n";
 
-		i++;
-	} while (plik && (i < 5));
-
-	plik.open(sciezka, fstream::out | fstream::in | fstream::trunc);
-
-	for (int k = 0; k < wysokosc_mapy_w_kafelkach; k++) {
-		for (int w = 0; w < szerokosc_mapy_w_kafelkach; w++) {
-			plik << ' ' << level[k][w];
-			cout << ' ' << level[k][w];
+	for (int k = 0; k < rozmiar_mapy_w_kafelkach.y; k++) {
+		for (int w = 0; w < rozmiar_mapy_w_kafelkach.x; w++) {
+			plik << ' ' << tablica_mapy[k][w];
 		}
-		cout << endl;
 		plik << endl;
 	}
 
 	plik.close();
 }
 
-bool MapaKafelkowa::wczytaj(string nazwa)
+void MapaKafelkowa::usun()
 {
-	if (nazwa == "")
-		return false;
+	fstream plik(nazwa_pliku_mapy);
 
-	fstream plik;
-	string sciezka;
-
-	sciezka = "zapisy/" + nazwa + ".txt";
-
-	plik.open(sciezka, fstream::in);
-	if (!plik.good())
-		return false;
-
-	for (int k = 0; k < wysokosc_mapy_w_kafelkach; k++) {
-		for (int w = 0; w < szerokosc_mapy_w_kafelkach; w++) {
-			plik >> level[k][w];
-			cout << ' ' << level[k][w];
-		}
-		cout << endl;
-	}
-
-	plik.close();
-	return true;
+	remove(sciezka.c_str());
 }

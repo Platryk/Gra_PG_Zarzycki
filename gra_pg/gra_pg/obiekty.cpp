@@ -24,6 +24,8 @@ PodstawowyObiekt::PodstawowyObiekt(string s_nazwa, sf::Vector2f u_pozycja_na_map
 	sprite.setPosition(pozycja_na_mapie);
 
 	prostokat_kolizyjny = sprite.getGlobalBounds();
+	prostokat_kolizyjny.left = 0;
+	prostokat_kolizyjny.top = 0;
 }
 
 sf::Vector2f PodstawowyObiekt::podajPunktCentralnySpritea()

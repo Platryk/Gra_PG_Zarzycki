@@ -123,13 +123,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="gra.cpp" />
     <ClCompile Include="gracz.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mapa_kafelkowa.cpp" />
+    <ClCompile Include="menu.cpp" />
     <ClCompile Include="obiekty.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="gra.h" />
     <ClInclude Include="mapa_kafelkowa.h" />
+    <ClInclude Include="menu.h" />
     <ClInclude Include="obiekty.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

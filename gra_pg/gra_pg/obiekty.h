@@ -30,6 +30,8 @@ public:
 	sf::Sprite podajSprite() { return sprite; }
 	sf::Vector2f podajRzeczywistyKierunekRuchu() { return rzeczywisty_kierunek_ruchu; }
 	unsigned int podajPredkosc() { return predkosc; }
+	unsigned int podajPrzyspieszenie() { return przyspieszenie; }
+	string podajSciezkeTeksturyLubFolderu() { return sciezka_tekstury_lub_folderu; }
 
 	void ustawPozycjeNaMapie(sf::Vector2f f_poz);
 	sf::FloatRect podajProstokatKolizyjny(); //Z uwzglednieniem wspolrzednych na mapie

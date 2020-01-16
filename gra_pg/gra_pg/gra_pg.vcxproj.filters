@@ -27,12 +27,24 @@
     <ClCompile Include="obiekty.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
+    <ClCompile Include="gra.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
+    <ClCompile Include="menu.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mapa_kafelkowa.h">
       <Filter>Pliki źródłowe</Filter>
     </ClInclude>
     <ClInclude Include="obiekty.h">
+      <Filter>Pliki źródłowe</Filter>
+    </ClInclude>
+    <ClInclude Include="menu.h">
+      <Filter>Pliki źródłowe</Filter>
+    </ClInclude>
+    <ClInclude Include="gra.h">
       <Filter>Pliki źródłowe</Filter>
     </ClInclude>
   </ItemGroup>
